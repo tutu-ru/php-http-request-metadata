@@ -30,7 +30,7 @@ class RequestMetadataHandler
 
     public function isRequestContainRequestId(RequestInterface $request): bool
     {
-        return $request->hasHeader(self::HTTP_REQUEST_ID);
+        return $request->hasHeader(self::HTTP_REQUEST_ID) || $request->hasHeader(self::HTTP_BC_REQUEST_ID);
     }
 
 
@@ -47,6 +47,14 @@ class RequestMetadataHandler
             if ($request->hasHeader($httpHeaderName)) {
                 $this->requestMetadata->set($attributeName, $request->getHeaderLine($httpHeaderName));
             }
+        }
+
+        // backward compatibility
+        if ($this->isRequestWithOldRequestId($request)) {
+            $this->requestMetadata->set(
+                RequestMetadata::ATTR_REQUEST_ID,
+                $request->getHeaderLine(self::HTTP_BC_REQUEST_ID)
+            );
         }
     }
 
@@ -68,6 +76,12 @@ class RequestMetadataHandler
         }
 
         return $result;
+    }
+
+
+    private function isRequestWithOldRequestId(RequestInterface $request): bool
+    {
+        return $request->hasHeader(self::HTTP_BC_REQUEST_ID) && !$request->hasHeader(self::HTTP_REQUEST_ID);
     }
 
 

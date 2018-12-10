@@ -13,6 +13,7 @@ class RequestMetadataHandlerTest extends BaseTest
     {
         return [
             [['tutu-request-id' => 'abc'], true],
+            [['x-request-id' => 'abc'], true],
             [['request-id' => 'abc'], false],
             [[], false],
         ];
@@ -43,6 +44,8 @@ class RequestMetadataHandlerTest extends BaseTest
             [[], []],
             // check all headers on by one
             [['tutu-request-id' => 'abc-def'], ['RequestId' => 'abc-def']],
+            [['x-request-id' => 'abc-def'], ['RequestId' => 'abc-def']],
+            [['tutu-request-id' => 'abc', 'x-request-id' => 'def'], ['RequestId' => 'abc']],
             [['tutu-sid' => 'def'], ['sid' => 'def']],
             [['tutu-uid' => 'abc'], ['uid' => 'abc']],
             [['tutu-jwt' => 'qwerty'], ['jwt' => 'qwerty']],
