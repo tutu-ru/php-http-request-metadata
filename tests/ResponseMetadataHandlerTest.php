@@ -3,10 +3,10 @@ declare(strict_types=1);
 
 namespace TutuRu\Tests\HttpRequestMetadata;
 
+use Middlewares\Utils\Factory;
 use TutuRu\HttpRequestMetadata\RequestMetadataHandler;
 use TutuRu\HttpRequestMetadata\ResponseMetadataHandler;
 use TutuRu\RequestMetadata\RequestMetadata;
-use TutuRu\Tests\HttpRequestMetadata\Psr\PsrResponseStub;
 
 class ResponseMetadataHandlerTest extends BaseTest
 {
@@ -36,7 +36,7 @@ class ResponseMetadataHandlerTest extends BaseTest
             $requestMetadata->set($attributeName, $attributeValue);
         }
         $httpHandler = new ResponseMetadataHandler($requestMetadata);
-        $response = $httpHandler->addToResponse(new PsrResponseStub());
+        $response = $httpHandler->addToResponse(Factory::createResponse());
 
         $this->assertEquals($expectedHeaders, $response->getHeaders());
     }
@@ -48,7 +48,7 @@ class ResponseMetadataHandlerTest extends BaseTest
         $requestMetadata->set(RequestMetadata::ATTR_REQUEST_ID, 'new value');
         $httpHandler = new ResponseMetadataHandler($requestMetadata);
 
-        $response = new PsrResponseStub();
+        $response = Factory::createResponse();
         $response = $response->withHeader(RequestMetadataHandler::HTTP_REQUEST_ID, 'old value');
         $response = $httpHandler->addToResponse($response);
 

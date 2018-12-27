@@ -3,12 +3,12 @@ declare(strict_types=1);
 
 namespace TutuRu\Tests\HttpRequestMetadata;
 
-use TutuRu\HttpRequestMetadata\RequestMetadataHandler;
+use Middlewares\Utils\Dispatcher;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Server\RequestHandlerInterface;
 use TutuRu\HttpRequestMetadata\RequestMetadataMiddleware;
-use TutuRu\HttpRequestMetadata\ResponseMetadataHandler;
 use TutuRu\RequestMetadata\RequestMetadata;
-use TutuRu\Tests\HttpRequestMetadata\Psr\PsrRequestHandlerStub;
-use TutuRu\Tests\HttpRequestMetadata\Psr\PsrServerRequestStub;
 
 class RequestMetadataMiddlewareTest extends BaseTest
 {
@@ -25,18 +25,13 @@ class RequestMetadataMiddlewareTest extends BaseTest
 
     /**
      * @dataProvider headersWithRequestIdDataProvider
-     *
-     * @param array $headers
-     * @param array $expectedAttributes
      */
     public function testProcessWithRequestId($headers, $expectedAttributes)
     {
         $requestMetadata = new RequestMetadata();
         $this->assertNull($requestMetadata->get(RequestMetadata::ATTR_REQUEST_ID));
 
-        $middleware = new RequestMetadataMiddleware(new RequestMetadataHandler($requestMetadata));
-        $middleware->process(new PsrServerRequestStub($headers), new PsrRequestHandlerStub());
-
+        $this->processRequest($this->createRequest($headers), $requestMetadata);
         $this->assertEquals($expectedAttributes, $requestMetadata->getAttributes());
     }
 
@@ -54,46 +49,58 @@ class RequestMetadataMiddlewareTest extends BaseTest
 
     /**
      * @dataProvider headersWithoutRequestIdDataProvider
-     *
-     * @param array $headers
      */
     public function testProcessWithoutRequestId($headers)
     {
         $requestMetadata = new RequestMetadata();
         $this->assertNull($requestMetadata->get(RequestMetadata::ATTR_REQUEST_ID));
 
-        $middleware = new RequestMetadataMiddleware(new RequestMetadataHandler($requestMetadata));
-        $middleware->process(new PsrServerRequestStub($headers), new PsrRequestHandlerStub());
-
+        $this->processRequest($this->createRequest($headers), $requestMetadata);
         $this->assertCount(1, $requestMetadata->getAttributes());
         $this->assertNotNull($requestMetadata->get(RequestMetadata::ATTR_REQUEST_ID));
     }
 
 
-    public function testResponseWithoutResponseHandler()
+    /**
+     * @dataProvider responseDataProvider
+     */
+    public function testResponse($headers)
     {
         $requestMetadata = new RequestMetadata();
-        $headers = ['tutu-request-id' => 'abc-def'];
-        $middleware = new RequestMetadataMiddleware(new RequestMetadataHandler($requestMetadata));
-        $response = $middleware->process(new PsrServerRequestStub($headers), new PsrRequestHandlerStub());
-
-        $this->assertEquals([], $response->getHeader('tutu-request-id'));
-    }
-
-
-    public function testResponseWithResponseHandler()
-    {
-        $requestMetadata = new RequestMetadata();
-        $headers = ['tutu-request-id' => 'abc-def'];
-        $middleware = new RequestMetadataMiddleware(
-            new RequestMetadataHandler($requestMetadata),
-            new ResponseMetadataHandler($requestMetadata)
-        );
-        $response = $middleware->process(new PsrServerRequestStub($headers), new PsrRequestHandlerStub());
-
+        $response = $this->processRequest($this->createRequest($headers), $requestMetadata);
+        $this->assertNotEmpty($response->getHeader('tutu-request-id'));
         $this->assertEquals(
             [$requestMetadata->get(RequestMetadata::ATTR_REQUEST_ID)],
             $response->getHeader('tutu-request-id')
+        );
+    }
+
+
+    public function responseDataProvider()
+    {
+        return [
+            [[]],
+            [['tutu-request-id' => 'abc-def']],
+            [['x-request-id' => 'abc-def']]
+        ];
+    }
+
+
+    private function processRequest(
+        ServerRequestInterface $request,
+        RequestMetadata $requestMetadata
+    ): ResponseInterface {
+        return Dispatcher::run(
+            [
+                new RequestMetadataMiddleware($requestMetadata),
+                function ($request, $next) {
+                    /** @var ResponseInterface $response */
+                    /** @var RequestHandlerInterface $next */
+                    $response = $next->handle($request);
+                    return $response->withStatus('200', 'ok');
+                }
+            ],
+            $request
         );
     }
 }
