@@ -6,8 +6,10 @@ namespace TutuRu\HttpRequestMetadata;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
+use Psr\Http\Server\MiddlewareInterface;
+use TutuRu\RequestMetadata\RequestMetadata;
 
-class RequestMetadataMiddleware
+class RequestMetadataMiddleware implements MiddlewareInterface
 {
     /** @var RequestMetadataHandler */
     private $requestMetadataHandler;
@@ -16,12 +18,10 @@ class RequestMetadataMiddleware
     private $responseMetadataHandler;
 
 
-    public function __construct(
-        RequestMetadataHandler $requestMetadataHandler,
-        ?ResponseMetadataHandler $responseMetadataHandler = null
-    ) {
-        $this->requestMetadataHandler = $requestMetadataHandler;
-        $this->responseMetadataHandler = $responseMetadataHandler;
+    public function __construct(RequestMetadata $requestMetadata)
+    {
+        $this->requestMetadataHandler = new RequestMetadataHandler($requestMetadata);
+        $this->responseMetadataHandler = new ResponseMetadataHandler($requestMetadata);
     }
 
 
@@ -35,10 +35,6 @@ class RequestMetadataMiddleware
 
         $response = $handler->handle($request);
 
-        if (!is_null($this->responseMetadataHandler)) {
-            $response = $this->responseMetadataHandler->addToResponse($response);
-        }
-
-        return $response;
+        return $this->responseMetadataHandler->addToResponse($response);
     }
 }

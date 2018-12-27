@@ -5,7 +5,6 @@ namespace TutuRu\Tests\HttpRequestMetadata;
 
 use TutuRu\HttpRequestMetadata\RequestMetadataHandler;
 use TutuRu\RequestMetadata\RequestMetadata;
-use TutuRu\Tests\HttpRequestMetadata\Psr\PsrServerRequestStub;
 
 class RequestMetadataHandlerTest extends BaseTest
 {
@@ -22,9 +21,6 @@ class RequestMetadataHandlerTest extends BaseTest
 
     /**
      * @dataProvider isHttpRequestContainRequestIdDataProvider
-     *
-     * @param array $headers
-     * @param bool  $expectedResult
      */
     public function testIsHttpRequestContainRequestId($headers, $expectedResult)
     {
@@ -32,7 +28,7 @@ class RequestMetadataHandlerTest extends BaseTest
         $httpHandler = new RequestMetadataHandler($requestMetadata);
         $this->assertEquals(
             $expectedResult,
-            $httpHandler->isRequestContainRequestId(new PsrServerRequestStub($headers))
+            $httpHandler->isRequestContainRequestId($this->createRequest($headers))
         );
     }
 
@@ -61,15 +57,12 @@ class RequestMetadataHandlerTest extends BaseTest
 
     /**
      * @dataProvider initFromHttpRequestDataProvider
-     *
-     * @param array $headers
-     * @param array $expectedAttributes
      */
     public function testInitFromHttpRequest($headers, $expectedAttributes)
     {
         $requestMetadata = new RequestMetadata();
         $httpHandler = new RequestMetadataHandler($requestMetadata);
-        $httpHandler->initFromRequest(new PsrServerRequestStub($headers));
+        $httpHandler->initFromRequest($this->createRequest($headers));
 
         $this->assertEquals($expectedAttributes, $requestMetadata->getAttributes());
     }
@@ -96,9 +89,6 @@ class RequestMetadataHandlerTest extends BaseTest
 
     /**
      * @dataProvider addToHttpRequestDataProvider
-     *
-     * @param array $attributes
-     * @param array $expectedHeaders
      */
     public function testAddToHttpRequest($attributes, $expectedHeaders)
     {
@@ -107,7 +97,7 @@ class RequestMetadataHandlerTest extends BaseTest
             $requestMetadata->set($attributeName, $attributeValue);
         }
         $httpHandler = new RequestMetadataHandler($requestMetadata);
-        $request = $httpHandler->addToRequest(new PsrServerRequestStub());
+        $request = $httpHandler->addToRequest($this->createRequest());
 
         $this->assertEquals($expectedHeaders, $request->getHeaders());
     }
